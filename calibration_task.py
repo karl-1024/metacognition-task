@@ -8,10 +8,11 @@ import pandas as pd
 import numpy as np 
 
 #essentials 
-win = visual.Window(size=(800,600), color='grey', units='pix')
+win = visual.Window(size=(1920,1080), color='grey', units='pix')
 square_left = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black',  pos =(-200,0), ori = 45) 
 square_right = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black', pos =(200,0), ori = 45)
-measurements = ["trial_num", "dot_difference", "num_dots_more", "key_pressed", "decision", "correct_answer", "correctness", "staircase_dir"] 
+measurements = ["trial_num", "dot_difference", "num_dots_more", "key_pressed", 
+                "decision", "correct_answer", "correctness", "staircase_dir", "boosted"] 
 data = pd.DataFrame(columns = measurements) 
 
 info = {'Subject ID (type manually):': ''}
@@ -103,9 +104,8 @@ def staircase(harder, difference, step):
     else: 
         log_diff += step
         #return new dot_difference, should be ~10% less 
-    return math.floor(math.exp(log_diff))
+    return math.exp(log_diff)
     
-
 
 
 #calibration data essentials 
@@ -116,33 +116,67 @@ less_dots = 313
 trialNum = 0
 log_dot_change = 0.1 
 difficulty = "up" 
+boosted_trials = 0
+max_boosted_trials = 50
+b_val = 0.41 #50/120, should be relatively equally interweaved 
+
 
 #experiment + staircase decision mechanism 
-while trialNum < 70: #change later
+while trialNum < 70 or boosted_trials < max_boosted_trials: 
     
+    boosted = False 
     trial_data = []
-    trial = display_calibration_dots(less_dots, less_dots + dot_difference) 
-    trial_correctness = trial[3]
-    if trial_correctness: 
-        consecutive_correct += 1
+    #after 20 "burn-in" staircase steps 
+    #if under 50 boosted trials and 30% chance 
+    if (trialNum >= 20 and boosted_trials < max_boosted_trials and random.random() < b_val or 
+        trialNum >= 70 ):
+        boosted = True 
+        #multiply by 1.3 in log space 
+        boosted_dot_difference = math.floor(math.exp(math.log(dot_difference) * 1.3))
+        trial = display_calibration_dots(less_dots, less_dots + boosted_dot_difference) 
+        boosted_trials += 1 
+        trial_data.append(trialNum)
+        trial_data.append(boosted_dot_difference) 
+        trial_data.append(less_dots + boosted_dot_difference) 
+        print("boosted")
     else: 
-        consecutive_correct = 0
-    trialNum += 1 
+        boosted = False 
+        #if not boosted
+        trial = display_calibration_dots(less_dots, less_dots + dot_difference)
+        trial_correctness = trial[3]
+        trial_data.append(trialNum)
+        trial_data.append(dot_difference) 
+        trial_data.append(less_dots + boosted_dot_difference) 
+        
+        #adds to consecutive_correct if trial is correct
+        if trial_correctness: 
+            consecutive_correct += 1
+        else: 
+            consecutive_correct = 0
+        
+        #staircase: if last two were correct, then makes it harder
+        if consecutive_correct >= 2: 
+            dot_difference = math.floor(staircase(True, dot_difference, log_dot_change))
+            difficulty = "up"
+        #else makes it easier 
+        elif consecutive_correct == 0: 
+            dot_difference = math.floor(staircase(False, dot_difference, log_dot_change ))
+            difficulty = "down" 
+            
+        trialNum += 1 
+            
     
-    if consecutive_correct >= 2: 
-        dot_difference = staircase(True, dot_difference, log_dot_change)
-        difficulty = "up"
-    elif consecutive_correct == 0: 
-        dot_difference = staircase(False, dot_difference, log_dot_change)
-        difficulty = "down" 
-    trial_data.append(trialNum) 
-    trial_data.append(dot_difference) 
-    trial_data.append(less_dots + dot_difference) 
+    
+    
     trial_data.extend(trial) 
     trial_data.append(difficulty) 
+    trial_data.append(boosted) 
     data.loc[len(data)] = trial_data 
+    
+individual_dot_diff = data.iloc[45:69, data.columns.get_loc('dot_difference')] 
 
 data.to_excel(f"{subject_id}_calibration_data.xlsx") 
+
 
 
     
