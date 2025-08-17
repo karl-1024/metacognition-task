@@ -1,4 +1,3 @@
-import task 
 import math 
 from psychopy import gui, visual, core, event 
 from psychopy.visual.dot import DotStim 
@@ -8,7 +7,7 @@ import pandas as pd
 import numpy as np 
 
 #essentials 
-win = visual.Window(size=(1920,1080), color='grey', units='pix')
+win = visual.Window(size=(800,600), color='grey', units='pix')
 square_left = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black',  pos =(-200,0), ori = 45) 
 square_right = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black', pos =(200,0), ori = 45)
 measurements = ["trial", "trial_num", "dot_difference", "num_dots_more", "key_pressed", 

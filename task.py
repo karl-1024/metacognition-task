@@ -25,7 +25,7 @@ else:
 #essentials 
 experiment_clock = core.Clock()
 win = visual.Window(size=(800,600), color='grey', units='pix')
-measurements = ["left_dots", "right_dots", "key_pressed", "decision", "correct_answer", "correctness", "confidence"] #add decision time later? 
+measurements = ["dot_count_one", "dot_count_two", "key_pressed", "decision", "correct_answer", "correctness", "confidence"] #add decision time later? 
 data = pd.DataFrame(columns = measurements) 
 
 #sets up two squares 
