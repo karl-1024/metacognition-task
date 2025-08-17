@@ -23,6 +23,23 @@ if dlg.OK:
 else:
     core.quit()
 
+#instructions 
+def display_instructions(): 
+    instruction_text = ("在這個遊戲中，您將看到兩個方塊逐一出現。\n\n"
+                        "方塊內會有許多一閃一閃的點點。\n\n"
+                        "您的任務是選擇含比較多點點的方塊。\n\n"
+                        "儘量快速和準確地回應。\n\n"
+                        "回應鍵如下:\n\n"
+                        "w = 左邊方塊\n\n"
+                        "e = 右邊方塊\n\n"
+                        "選擇之後，方塊邊的顏色會改變，顯示您的選擇的對錯。\n\n"
+                        "綠色代表您的選擇正確，則紅色代表選擇錯誤。\n\n"
+                        "按 'Enter' 開始，一旦您理解了規則。")
+    instructions = visual.TextStim(win, text = instruction_text) 
+    instructions.draw()
+    win.flip()
+    enter_key = event.waitKeys(keyList = ['return'])
+    
 #displays flickering dots & squares (150 x 5 = 750 ms) 
 def display_evidence(lDots, rDots): 
     for i in range(5):
@@ -139,7 +156,7 @@ while trialNum < 70 or boosted_trials < max_boosted_trials:
         trialNum >= 70 ):
         boosted = True 
         #multiply by 1.3 in log space 
-        boosted_dot_difference = math.floor(math.exp(math.log(dot_difference) * 1.3))
+        boosted_dot_difference = int(round(math.exp(math.log(dot_difference) * 1.3)))
         trial = display_calibration_dots(less_dots, less_dots + boosted_dot_difference) 
         boosted_trials += 1 
         trial_data.append(trialNum)
