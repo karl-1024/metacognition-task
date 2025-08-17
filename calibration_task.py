@@ -11,10 +11,11 @@ import numpy as np
 win = visual.Window(size=(1920,1080), color='grey', units='pix')
 square_left = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black',  pos =(-200,0), ori = 45) 
 square_right = visual.Polygon(win, edges = 4, radius = 200, fillColor = 'black', pos =(200,0), ori = 45)
-measurements = ["trial_num", "dot_difference", "num_dots_more", "key_pressed", 
+measurements = ["trial", "trial_num", "dot_difference", "num_dots_more", "key_pressed", 
                 "decision", "correct_answer", "correctness", "staircase_dir", "boosted"] 
 data = pd.DataFrame(columns = measurements) 
 
+#subject id pop up box 
 info = {'Subject ID (type manually):': ''}
 dlg = gui.DlgFromDict(dictionary=info, title='Experimenter Input')
 if dlg.OK:
@@ -22,9 +23,10 @@ if dlg.OK:
 else:
     core.quit()
 
+#displays flickering dots & squares (150 x 5 = 750 ms) 
 def display_evidence(lDots, rDots): 
-    
     for i in range(5):
+        #draws flickering dots, squares 
         square_left.draw()
         square_right.draw()
         dots_left = DotStim(win, nDots = lDots, fieldPos = (-200,0), 
@@ -45,9 +47,10 @@ def display_evidence(lDots, rDots):
     win.flip()
 
 
+#single calibration trial + wait 
 def display_calibration_dots(dots_count_one, dots_count_two): 
     coinFlip = random.randint(0,1)
-    if coinFlip == 0: 
+    if coinFlip == 0: #chooses where to put dots_count_one (313 dots) and other square
         lDots = dots_count_one 
         rDots = dots_count_two 
     else: 
@@ -63,13 +66,14 @@ def display_calibration_dots(dots_count_one, dots_count_two):
     else: 
         correct_answer = "right" 
     
+    #displays dots
     display_evidence(lDots, rDots)
     
     
     #waits for response 
     response = event.waitKeys(keyList = ['w','e'])
     if response: 
-        response_key = response[0][0]
+        response_key = response[0]
         decision = "None"
         if response_key == 'w':
             decision = "left" 
@@ -90,7 +94,7 @@ def display_calibration_dots(dots_count_one, dots_count_two):
         square_right.draw() 
         win.flip()
         core.wait(0.5)
-    
+    #returns key pressed, corresponding square, correct square, correctness 
     return [response_key, decision, correct_answer, correctness] 
 
 #for figuring out how much dot difference should be lowered by (on log scale) 
@@ -100,32 +104,35 @@ def display_calibration_dots(dots_count_one, dots_count_two):
 def staircase(harder, difference, step): 
     log_diff = math.log(difference) 
     if harder: 
-        log_diff -= step
+        #ensures dot diff will be at least 1
+        log_diff = max(1, log_diff - step)
     else: 
-        log_diff += step
+        log_diff = max(1, log_diff + step)
         #return new dot_difference, should be ~10% less 
+    print("non-rounded dot difference: " + str(math.exp(log_diff)))
     return math.exp(log_diff)
     
 
 
 #calibration data essentials 
-correct = []
-consecutive_correct = 0 
-dot_difference = 300
-less_dots = 313
+trialCount = 0
+consecutive_correct = 0 #amount of consecutive answers correct 
+dot_difference = 300 #difference between square with less dots and square with more dots
+less_dots = 313 #amount of dots in the square with less dots 
 trialNum = 0
-log_dot_change = 0.1 
-difficulty = "up" 
-boosted_trials = 0
-max_boosted_trials = 50
+log_dot_change = 0.1 #staircase diff in logarithmic space. roughly translates to ~10%
+difficulty = "up" #up means harder, down means easier
+boosted_trials = 0 #50 interweaved boosted trials. 
+max_boosted_trials = 50 
 b_val = 0.41 #50/120, should be relatively equally interweaved 
 
 
 #experiment + staircase decision mechanism 
 while trialNum < 70 or boosted_trials < max_boosted_trials: 
-    
+    trialCount += 1
     boosted = False 
     trial_data = []
+    trial_data.append(trialCount) 
     #after 20 "burn-in" staircase steps 
     #if under 50 boosted trials and 30% chance 
     if (trialNum >= 20 and boosted_trials < max_boosted_trials and random.random() < b_val or 
@@ -138,7 +145,7 @@ while trialNum < 70 or boosted_trials < max_boosted_trials:
         trial_data.append(trialNum)
         trial_data.append(boosted_dot_difference) 
         trial_data.append(less_dots + boosted_dot_difference) 
-        print("boosted")
+        
     else: 
         boosted = False 
         #if not boosted
@@ -146,7 +153,7 @@ while trialNum < 70 or boosted_trials < max_boosted_trials:
         trial_correctness = trial[3]
         trial_data.append(trialNum)
         trial_data.append(dot_difference) 
-        trial_data.append(less_dots + boosted_dot_difference) 
+        trial_data.append(less_dots + dot_difference) 
         
         #adds to consecutive_correct if trial is correct
         if trial_correctness: 
@@ -156,17 +163,18 @@ while trialNum < 70 or boosted_trials < max_boosted_trials:
         
         #staircase: if last two were correct, then makes it harder
         if consecutive_correct >= 2: 
-            dot_difference = math.floor(staircase(True, dot_difference, log_dot_change))
+            dot_difference = int(round((staircase(True, dot_difference, log_dot_change))))
             difficulty = "up"
         #else makes it easier 
         elif consecutive_correct == 0: 
-            dot_difference = math.floor(staircase(False, dot_difference, log_dot_change ))
+            dot_difference = int(round((staircase(False, dot_difference, log_dot_change ))))
             difficulty = "down" 
             
         trialNum += 1 
             
     
     
+    #attaches data onto trial_data then onto dataframe 
     
     trial_data.extend(trial) 
     trial_data.append(difficulty) 
@@ -175,6 +183,11 @@ while trialNum < 70 or boosted_trials < max_boosted_trials:
     
 individual_dot_diff = data.iloc[45:69, data.columns.get_loc('dot_difference')] 
 
+#final data processing 
+non_boosted_data = data[data["boosted"] == False]
+calibrated_dot_diff_data = non_boosted_data.iloc[45:69, non_boosted_data.columns.get_loc('dot_difference')] 
+calibrated_dot_diff = sum(calibrated_dot_diff_data) / 25
+print("calibrated dot difference for trial: " + str(calibrated_dot_diff))
 data.to_excel(f"{subject_id}_calibration_data.xlsx") 
 
 
