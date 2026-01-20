@@ -1,1 +1,1 @@
-Python (psychopy) version of two box metacognition task. Confidence task and general procedure taken from _Metacognitive Failure as a Feature of Those Holding Radical Beliefs_ by Rollwage et al. Done under high school research internship with National Taiwan University Dept. of Psych.
+Python (psychopy) version of two box metacognition task. Confidence task and general procedure taken from _Metacognitive Failure as a Feature of Those Holding Radical Beliefs_ by Rollwage et al. Done under research internship with National Taiwan University Dept. of Psych.
